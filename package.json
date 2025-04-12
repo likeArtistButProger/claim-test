@@ -1,0 +1,17 @@
+{
+  "name": "claim_flow",
+  "packageManager": "yarn@4.9.1",
+  "scripts": {
+    "dev": "ts-node ./src/main.ts"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.0",
+    "bs58": "^6.0.0",
+    "dotenv": "^16.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0"
+  }
+}
