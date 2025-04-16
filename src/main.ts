@@ -4,13 +4,13 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
+const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 
 const pk = bs58.decode(process.env.PK ?? "");
 const owner = Keypair.fromSecretKey(pk);
 
 const claimerPk = bs58.decode(process.env.CLAIMER_PK ?? "");
-const claimer = Keypair.fromSecretKey(claimerPk);
+const claimer = Keypair.fromSecretKey(claimerPk ?? "");
 
 const amount = 0.001 * LAMPORTS_PER_SOL;
 
@@ -28,6 +28,10 @@ async function callWithRetries<T>(func: () => Promise<T>, maxRetries: number) {
     }
 }
 
+async function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function main() {
 
     const temp = Keypair.generate();
@@ -43,7 +47,7 @@ async function main() {
     txOwnerToTemp.add(SystemProgram.transfer({
         fromPubkey: owner.publicKey,
         toPubkey: temp.publicKey,
-        lamports: amount,
+        lamports: amount * 2,
     }));
     txOwnerToTemp.sign(owner);
     const txHash = await callWithRetries<string>(async () => connection.sendRawTransaction(txOwnerToTemp.serialize()), 5);
@@ -54,18 +58,23 @@ async function main() {
 
     await connection.confirmTransaction({ signature: txHash, blockhash: blockhash.blockhash, lastValidBlockHeight: blockhash.lastValidBlockHeight }, "finalized");
 
+    // console.log("Temp balance:", await connection.getBalance(temp.publicKey));
+
+    // console.log("Sleeping....");
+    // await sleep(180_000);
+
     blockhash = await connection.getLatestBlockhash();
     const tx = new Transaction();
     tx.recentBlockhash = blockhash.blockhash;
     tx.add(SystemProgram.transfer({
-        fromPubkey: owner.publicKey,
+        fromPubkey: temp.publicKey,
         toPubkey: claimer.publicKey,
         lamports: amount,
     }));
 
     tx.feePayer = claimer.publicKey;
 
-    tx.sign(owner);
+    tx.sign(temp);
 
     const serializedTransaction = tx.serialize({requireAllSignatures: false}).toString('base64');
     console.log("Serialized transaction:", serializedTransaction);
